@@ -2,8 +2,6 @@
 IDEAS:
 
 Stream output to a file?
-
-add runloop.sleep_ms(1) in between everything in the main function (async io is mad)
 '''
 
 from hub import light_matrix, motion_sensor, port
@@ -20,6 +18,7 @@ import sys
 print(sys.version)
 
 error = []
+fileout = []
 
 d = 5.5 # Diameter of one wheel
 r = 8   # Radius of turning (using one wheel)
@@ -75,6 +74,7 @@ async def turn(pivot_on:str,theta:int,stop:bool=False,**kwargs):
         motor.stop(port.F)
 
     global error
+    global fileout
     global pivot
     pivot = pivot_on
 
@@ -88,8 +88,10 @@ async def main():
         await turn("left",randtheta)
         error.append(["i:{i}, theta:{thistheta}, yaw:{yaw}, wheel:{pivot}, error:{degree_error}"
         .format(i=i,thistheta=randtheta,yaw=motion_sensor.tilt_angles()[0],pivot=pivot,degree_error=(motion_sensor.tilt_angles()[0]-randtheta*10)/10)])
-        print(error)
-        print("---")
+        fileout.append(["{i},{thistheta},{yaw},{pivot},{degree_error}"
+        .format(i=i,thistheta=randtheta,yaw=motion_sensor.tilt_angles()[0],pivot=pivot,degree_error=(motion_sensor.tilt_angles()[0]-randtheta*10)/10)])
+        for row in error:
+            print(row, "\n")
         motion_sensor.reset_yaw(0)
 
     error.append("\nNEXT\n")
@@ -101,18 +103,19 @@ async def main():
         await turn("right",randtheta)
         error.append(["i:{i}, theta:{thistheta}, yaw:{yaw}, wheel:{pivot}, error:{degree_error}"
         .format(i=i,thistheta=randtheta,yaw=motion_sensor.tilt_angles()[0],pivot=pivot,degree_error=(motion_sensor.tilt_angles()[0]-randtheta*10)/10)])
+        fileout.append(["{i},{thistheta},{yaw},{pivot},{degree_error}"
+        .format(i=i,thistheta=randtheta,yaw=motion_sensor.tilt_angles()[0],pivot=pivot,degree_error=(motion_sensor.tilt_angles()[0]-randtheta*10)/10)])
         for row in error:
-            print("row\n")
+            print(row, "\n")
         print("---")
 
     original_stdout = sys.stdout
     
-    with open('diagnostic_op.txt','w') as f:
+    with open('diagnostic_op.csv','w') as f:
         sys.stdout = f
-        for row in error:
+        for row in fileout:
             print(','.join(row))
         
         sys.stdout = original_stdout
 
 runloop.run(main())
-
