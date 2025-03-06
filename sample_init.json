@@ -9,6 +9,6 @@
     ],
     "wheel_info": [
         "wheel_diameter": 6.1,
-        "half_wheel_spacing": 5
+        "tank_turn_radius": 5
     ]
 }
