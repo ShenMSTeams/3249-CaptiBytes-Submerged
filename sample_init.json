@@ -1,11 +1,11 @@
 {
     "ports": [
-        "drive_l": "port.C",
-        "drive_r": "port.f",
-        "attach_l": "port.B",
-        "attach_r": "port.D",
-        "sensor_l": "port.A",
-        "sensor_r": "port.E"
+        "drive_l": 2,
+        "drive_r": 5,
+        "attach_l": 1,
+        "attach_r": 3,
+        "sensor_l": 0,
+        "sensor_r": 4
     ],
     "wheel_info": [
         "wheel_diameter": 6.1,
