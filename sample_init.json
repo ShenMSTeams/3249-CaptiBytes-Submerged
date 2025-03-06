@@ -1,0 +1,14 @@
+{
+    "ports": [
+        "drive_l": "port.C",
+        "drive_r": "port.f",
+        "attach_l": "port.B",
+        "attach_r": "port.D",
+        "sensor_l": "port.A",
+        "sensor_r": "port.E"
+    ],
+    "wheel_info": [
+        "wheel_diameter": 6.1,
+        "half_wheel_spacing": 5
+    ]
+}
