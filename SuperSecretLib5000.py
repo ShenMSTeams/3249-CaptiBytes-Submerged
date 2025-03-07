@@ -1,4 +1,20 @@
-from hub import light, light_matrix, motion_sensor, port
+"""This is an example SuperSecretLib5000.
+
+This SuperSecretLib5000 does stuff.
+"""
+
+__version__ = '2.5a'
+__author__ = 'Shen FLL Team #3249 - the Captibytes'
+
+import sys
+import time
+import math
+import json
+
+from hub import port
+from hub import motion_sensor
+from hub import light
+from hub import light_matrix
 
 import color
 import color_sensor
@@ -7,18 +23,8 @@ import motor_pair as mpair
 
 import runloop
 
-import time
-import math
-import sys
 
-# Some constants used for movement calculations...
-WHEEL_DIAMETER = 6.1
-TURN_RADIUS = 5
 F_CORRECTION_CONST = 0.001  # For forward move: Control by this number for every degree of error.
-
-# Settings...
-turn_assist = False
-forward_assist = False
 
 
 def settings_light():
@@ -44,34 +50,45 @@ def light_power_off():
 def reset_gyro():
     motion_sensor.set_yaw_face(motion_sensor.TOP)
     motion_sensor.reset_yaw(0)
-    yaw = motion_sensor.tilt_angles()
-    print(yaw)
+    angles = motion_sensor.tilt_angles()
+    print("Gyro angles:", angles)
 
 
 def ver():
     print(sys.version)
-    print("ssl5k - ver 2.0-AZURE")
-    print("Welcome to SuperSecretLib5000.py!")
-    print("Created by FLL Team #3249 - the CaptiBytes")
+    print("SuperSecretLib5000 version:", __version__)
+    print("Created by:", __author__)
 
 
-def init(drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r):
-    x = None
+def init(drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r, WHEEL_DIAMETER, TANK_TURN_RADIUS **kwargs):
     ver()
-    try:
-        try:
-            mpair.unpair(mpair.PAIR_1)
-            mpair.unpair(mpair.PAIR_2)
-        except:
-            print("No pairs found, creating new motor pairs...")
-        mpair.pair(mpair.PAIR_1, drive_l, drive_r)
-        mpair.pair(mpair.PAIR_2, attach_l, attach_r)
-    except:
-        print("Something went wrong! Cannot create motor pairs!")
+
+    use_json = kwargs.get("use_json", False)
+    
+    if use_json:
+        with open("init.json", "r") as ij:
+            init_config = json.load(ij)
+            if drive_l is None:
+                drive_l = init_config["ports"][0]
+            if drive_r is None:
+                drive_r = init_config["ports"][1]
+            if attach_l is None:
+                attach_l = init_config["ports"][2]
+            if attach_r is None:
+                attach_r = init_config["ports"][3]
+            if sensor_l is None:
+                sensor_l = init_config["ports"][4]
+            if sensor_r is None:
+                sensor_r = init_config["ports"][5]
+            if WHEEL_DIAMETER is None:
+                WHEEL_DIAMETER = init_config["wheel_info"]["wheel_diameter"]
+            if TANK_TURN_ASSIST is None:
+                TANK_TURN_RADIUS = init_config["wheel_info"]["tank_turn_radius"]
+    
     light.color(light.POWER, color.AZURE)
     settings_light()
     light_matrix.write("#")
-    return x, drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r
+    return drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r
 
 
 async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
@@ -82,10 +99,11 @@ async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
         limit = True
 
     reset_gyro()
-    yaw = None
+    yaw = motion_sensor.tilt_angles()[0]
 
     degrees = dist*(360.0/(math.pi*WHEEL_DIAMETER))
 
+    assist = kwargs.get("assist", False)
     accel = kwargs.get("acceleration", 10000)
     velocity = kwargs.get("velocity", 360)
     if degrees < 0:
@@ -102,7 +120,7 @@ async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
     """
     .format(dist = dist, stop = stop, run_until = limit, run_time = run_time, velocity = velocity, accel = accel))
 
-    if forward_assist:
+    if assist:
         print("Forward: Using gyro to assist movement...")
         start = time.ticks_ms()
         while True:
@@ -120,7 +138,7 @@ async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
             mpair.move_tank(mpair.PAIR_1, int(velocity+correction), int(velocity-correction), acceleration=accel)
             gyro_light("good")
             
-    else:  # (if forward_assist is NOT True):
+    else:  # (if assist is NOT True):
         print("Forward: Moving without gyro assist...")
         mpair.move_tank(mpair.PAIR_1, velocity, velocity, acceleration=accel)
         start = time.ticks_ms()
@@ -146,8 +164,6 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     else:
         limit = True
 
-    reset_gyro()
-
     dist = (2*math.pi*TURN_RADIUS)*(theta/360.0)
     degrees = dist*(360.0/(math.pi*WHEEL_DIAMETER))
 
@@ -166,55 +182,17 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
 
     total_turn = 0.0
 
-    if turn_assist is False:
-        mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
-        start = time.ticks_ms()
-        while True:
-            if run_until():
-                print("Turn: Stopping due to sensors...")
-                break
-            now = time.ticks_ms()
-            if now-start > run_time:
-                print("Turn: Stopping due to time...")
-                break
-
-    elif turn_assist:
-        mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
-        start = time.ticks_ms()
-        angle_prev = (motion_sensor.tilt_angles()[0])/10.0
-        while True:
-            if run_until():
-                break
-            now = time.ticks_ms()
-            if now-start > run_time:
-                break
-
-            angle_now = (motion_sensor.tilt_angles()[0])/10.0
-            if angle_now < 0.0 and angle_prev > 0.0 and theta > 0.0:  # Sign change + -> - (turning right)
-                _delta_pos = 180.0 - angle_prev
-                _delta_neg = angle_now + 180.0
-                delta_turn = _delta_pos + _delta_neg
-            elif angle_now > 0.0 and angle_prev < 0.0 and theta < 0.0:
-                _delta_neg = -180.0 - angle_prev
-                _delta_pos = angle_now + 180.0
-                delta_turn = _delta_pos + _delta_neg
-            else:
-                delta_turn = angle_now - angle_prev
-
-            total_turn += delta_turn
-
-            if abs(total_turn) >= abs(theta):
-                break
-
-            angle_prev = angle_now
-
-        print("""\nGyro --
-    expected= {theta} degrees
-    gyro= {total_turn} degrees
-    error= {error} degrees
-        """
-        .format(theta = theta, total_turn = total_turn, error = total_turn-theta))
-
+    mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
+    start = time.ticks_ms()
+    while True:
+        if run_until():
+            print("Turn: Stopping due to sensors...")
+            break
+        now = time.ticks_ms()
+        if now-start > run_time:
+            print("Turn: Stopping due to time...")
+            break
+            
     if stop:
         mpair.stop(mpair.PAIR_1)
 
