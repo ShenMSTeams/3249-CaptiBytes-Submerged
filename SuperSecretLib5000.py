@@ -46,6 +46,10 @@ def reset_gyro():
     print("Gyro angles:", angles)
 
 
+def exit():
+    raise SystemExit("Program ended with ssl5k.exit() function.")
+
+
 def ver():
     print(sys.version)
     print("SuperSecretLib5000 version:", __version__)
