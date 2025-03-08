@@ -1,0 +1,9 @@
+[flake8]
+extend-ignore=
+	E501
+per-file-ignores=
+	SuperSecretLib5000.py: E501, E731
+
+exclude=
+	sample_main.py,
+	.venv

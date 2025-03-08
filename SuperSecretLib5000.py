@@ -11,7 +11,6 @@ import time
 import math
 import json
 
-from hub import port
 from hub import motion_sensor
 from hub import light
 from hub import light_matrix
@@ -21,19 +20,12 @@ import color_sensor
 
 import motor_pair as mpair
 
-import runloop
-
 
 F_CORRECTION_CONST = 0.001  # For forward move: Control by this number for every degree of error.
 
 
-def settings_light():
-    if turn_assist and forward_assist:
-        light.color(light.CONNECT, color.GREEN)
-    elif turn_assist:
-        light.color(light.CONNECT, color.YELLOW)
-    elif forward_assist:
-        light.color(light.CONNECT, color.AZURE)
+def assist_light():
+    light.color(light.CONNECT, color.YELLOW)
 
 
 def gyro_light(status: str):
@@ -60,38 +52,55 @@ def ver():
     print("Created by:", __author__)
 
 
-def init(drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r, WHEEL_DIAMETER, TANK_TURN_RADIUS **kwargs):
+def init(drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r, WHEEL_DIAMETER, TANK_TURN_RADIUS, **kwargs):
     ver()
 
     use_json = kwargs.get("use_json", False)
-    
+
     if use_json:
-        with open("init.json", "r") as ij:
-            init_config = json.load(ij)
-            if drive_l is None:
-                drive_l = init_config["ports"][0]
-            if drive_r is None:
-                drive_r = init_config["ports"][1]
-            if attach_l is None:
-                attach_l = init_config["ports"][2]
-            if attach_r is None:
-                attach_r = init_config["ports"][3]
-            if sensor_l is None:
-                sensor_l = init_config["ports"][4]
-            if sensor_r is None:
-                sensor_r = init_config["ports"][5]
-            if WHEEL_DIAMETER is None:
-                WHEEL_DIAMETER = init_config["wheel_info"]["wheel_diameter"]
-            if TANK_TURN_ASSIST is None:
-                TANK_TURN_RADIUS = init_config["wheel_info"]["tank_turn_radius"]
-    
+        try:
+            with open("init.json", "r") as ij:
+                init_config = json.load(ij)
+                if drive_l is None:
+                    drive_l = init_config["ports"][0]
+                if drive_r is None:
+                    drive_r = init_config["ports"][1]
+                if attach_l is None:
+                    attach_l = init_config["ports"][2]
+                if attach_r is None:
+                    attach_r = init_config["ports"][3]
+                if sensor_l is None:
+                    sensor_l = init_config["ports"][4]
+                if sensor_r is None:
+                    sensor_r = init_config["ports"][5]
+                if WHEEL_DIAMETER is None:
+                    WHEEL_DIAMETER = init_config["wheel_info"]["wheel_diameter"]
+                if TANK_TURN_RADIUS is None:
+                    TANK_TURN_RADIUS = init_config["wheel_info"]["tank_turn_radius"]
+        except ValueError:
+            raise ValueError("Failed to read init.json file! Please make sure the file is contains JSON syntax and is structured properly.")
+        except OSError:
+            raise OSError("Could not find init.json file! Please make sure the file has the correct name and is in the root directory of the bot.")
+
+    try:
+        try:
+            mpair.unpair(mpair.PAIR_1)
+            mpair.unpair(mpair.PAIR_2)
+        except RuntimeError:
+            print("No pairs found, proceeding with creating pairs...")
+        mpair.pair(mpair.PAIR_1, drive_l, drive_r)
+        mpair.pair(mpair.PAIR_2, attach_l, attach_r)
+    except RuntimeError:
+        raise RuntimeError("Failed to create motor pairs! Please make sure the ports used are not part of any other pairs.")
+    except ValueError:
+        raise ValueError("Failed to create motor pairs! Please make sure the ports passed as motors connect to motors and that all ports are valid.")
+
     light.color(light.POWER, color.AZURE)
-    settings_light()
     light_matrix.write("#")
-    return drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r
+    return drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r, WHEEL_DIAMETER, TANK_TURN_RADIUS
 
 
-async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
+async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     if run_until is None:
         run_until = lambda: False
         limit = False
@@ -101,7 +110,7 @@ async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
     reset_gyro()
     yaw = motion_sensor.tilt_angles()[0]
 
-    degrees = dist*(360.0/(math.pi*WHEEL_DIAMETER))
+    degrees = dist*(360.0/(math.pi*init.WHEEL_DIAMETER))
 
     assist = kwargs.get("assist", False)
     accel = kwargs.get("acceleration", 10000)
@@ -117,11 +126,12 @@ async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
     run_time= {run_time}
     velocity= {velocity}
     accel= {accel}
-    """
-    .format(dist = dist, stop = stop, run_until = limit, run_time = run_time, velocity = velocity, accel = accel))
+    """.format(dist=dist, stop=stop, run_until=limit, run_time=run_time, velocity=velocity, accel=accel))
 
     if assist:
         print("Forward: Using gyro to assist movement...")
+        assist_light()
+
         start = time.ticks_ms()
         while True:
             if run_until():
@@ -137,7 +147,7 @@ async def forward(dist: int, stop: bool = False, run_until=None,**kwargs):
             correction = velocity*f_correction_factor
             mpair.move_tank(mpair.PAIR_1, int(velocity+correction), int(velocity-correction), acceleration=accel)
             gyro_light("good")
-            
+
     else:  # (if assist is NOT True):
         print("Forward: Moving without gyro assist...")
         mpair.move_tank(mpair.PAIR_1, velocity, velocity, acceleration=accel)
@@ -164,8 +174,8 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     else:
         limit = True
 
-    dist = (2*math.pi*TURN_RADIUS)*(theta/360.0)
-    degrees = dist*(360.0/(math.pi*WHEEL_DIAMETER))
+    dist = (2*math.pi*init.TURN_RADIUS)*(theta/360.0)
+    degrees = dist*(360.0/(math.pi*init.WHEEL_DIAMETER))
 
     velocity = int(kwargs.get("velocity", 360)/2)
     if degrees < 0:
@@ -177,10 +187,7 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     print("""\nTurn --
     theta= {theta}, stop= {stop}, run_until= {run_until}
     kwargs= {kwargs}
-    """
-    .format(theta = theta, stop = stop, run_until = limit, kwargs = kwargs.items()))
-
-    total_turn = 0.0
+    """.format(theta=theta, stop=stop, run_until=limit, kwargs=kwargs.items()))
 
     mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
     start = time.ticks_ms()
@@ -192,29 +199,33 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
         if now-start > run_time:
             print("Turn: Stopping due to time...")
             break
-            
+
     if stop:
         mpair.stop(mpair.PAIR_1)
 
     light_power_off()
 
 
-async def attachment(degrees: int, attach_port: str):
-    if attach_port.lower() == "left":
+async def attachment(degrees: int, attach_side: str):
+    if attach_side.lower() == "left":
         await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 360, 0)
-    if attach_port.lower() == "right":
+    if attach_side.lower() == "right":
         await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 0, 360)
-    if attach_port.lower() == "both":
+    if attach_side.lower() == "both":
         await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 360, 360)
 
     print("""\nAttachment --
     degrees= {degrees}
-    attach_port= {attach_port}
-    """
-        .format(degrees = degrees, attach_port = attach_port))
+    attach_side= {attach_side}
+    """.format(degrees=degrees, attach_side=attach_side))
 
 
-async def sensor(sensor_type: str, sensor_port: int, expected: int):
+async def sensor(sensor_type: str, sensor_side: str, expected: int):
+    if sensor_side.lower() == "left":
+        sensor_port = init.attach_l
+    elif sensor_side.lower() == "right":
+        sensor_port = init.attach_r
+
     if sensor_type.lower() == "color":
         value = color_sensor.color(sensor_port)
         return value == expected
