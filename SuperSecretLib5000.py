@@ -56,14 +56,42 @@ def ver():
     print("Created by:", __author__)
 
 
-def init(drive_l, drive_r, attach_l, attach_r, sensor_l, sensor_r, WHEEL_DIAMETER, TANK_TURN_RADIUS, **kwargs):
+def init(*args, **kwargs):
     ver()
+
+    # Create named arguments so they can be referenced later, even if they have no value.
+    drive_l = None
+    drive_r = None
+    attach_l = None
+    attach_r = None
+    sensor_l = None
+    sensor_r = None
+    WHEEL_DIAMETER = None
+    TANK_TURN_RADIUS = None
+
+    for i in args:
+        if i == 1:
+            drive_l = args(0)
+        elif i == 2:
+            drive_r = args(1)
+        elif i == 3:
+            attach_l = args(2)
+        elif i == 4:
+            attach_r = args(3)
+        elif i == 5:
+            sensor_l = args(4)
+        elif i == 6:
+            sensor_r = args(5)
+        elif i == 7:
+            WHEEL_DIAMETER = args(6)
+        elif i == 8:
+            TANK_TURN_RADIUS = args(7)
 
     use_json = kwargs.get("use_json", False)
 
     if use_json:
-        try:
-            with open("init.json", "r") as ij:
+        try:  # Check init.json file for ports and wheel info, use only if there is no value.
+            with open("/flash/init.json", "r") as ij:
                 init_config = json.load(ij)
                 if drive_l is None:
                     drive_l = init_config["ports"][0]
