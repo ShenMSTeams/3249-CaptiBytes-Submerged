@@ -23,7 +23,6 @@ import motor_pair as mpair
 
 F_CORRECTION_CONST = 0.001  # For forward move: Control by this number for every degree of error.
 
-
 def assist_light():
     light.color(light.CONNECT, color.YELLOW)
 
@@ -56,63 +55,67 @@ def ver():
     print("Created by:", __author__)
 
 
-def init(*args, **kwargs):
+_config = dict(
+    drive_l = None,
+    drive_r = None,
+    attach_l = None,
+    attach_r = None,
+    sensor_l = None,
+    sensor_r = None,
+    WHEEL_DIAMETER = None,
+    TURN_RADIUS = None,
+)
+
+
+def init(**kwargs):
     ver()
 
-    # Create named arguments so they can be referenced later, even if they have no value.
-    init.drive_l = None
-    init.drive_r = None
-    init.attach_l = None
-    init.attach_r = None
-    init.sensor_l = None
-    init.sensor_r = None
-    init.WHEEL_DIAMETER = None
-    init.TANK_TURN_RADIUS = None
-
-    for i in args:
-        if i == 1:
-            init.drive_l = args(0)
-        elif i == 2:
-            init.drive_r = args(1)
-        elif i == 3:
-            init.attach_l = args(2)
-        elif i == 4:
-            init.attach_r = args(3)
-        elif i == 5:
-            init.sensor_l = args(4)
-        elif i == 6:
-            init.sensor_r = args(5)
-        elif i == 7:
-            init.WHEEL_DIAMETER = args(6)
-        elif i == 8:
-            init.TANK_TURN_RADIUS = args(7)
+    for key in _config.keys():
+        _config[key] = kwargs.get(key)
 
     use_json = kwargs.get("use_json", False)
+
+    config_error = False
+    errors = []
+
+    def _process_cfg(key, cfg_item_f):
+        global config_error
+        try:
+            _val = kwargs.get(key)
+            if _val is None:
+                _val = cfg_item_f()
+            _config[key] = _val
+        except Exception:
+            config_error = True
+            errors.append(key)
+
+    _process_cfg('drive_l', lambda: init_config['ports'][0])
+
+    if config_error:
+        raise ValueError(f'missing config keys: {errors}')
 
     if use_json:
         try:  # Check init.json file for ports and wheel info, use only if there is no value.
             with open("/flash/init.json", "r") as ij:
                 init_config = json.load(ij)
-                if init.drive_l is None:
-                    init.drive_l = init_config["ports"][0]
-                if init.drive_r is None:
-                    init.drive_r = init_config["ports"][1]
-                if init.attach_l is None:
-                    init.attach_l = init_config["ports"][2]
-                if init.attach_r is None:
-                    init.attach_r = init_config["ports"][3]
-                if init.sensor_l is None:
-                    init.sensor_l = init_config["ports"][4]
-                if init.sensor_r is None:
-                    init.sensor_r = init_config["ports"][5]
-                if init.WHEEL_DIAMETER is None:
-                    init.WHEEL_DIAMETER = init_config["wheel_info"]["wheel_diameter"]
-                if init.TANK_TURN_RADIUS is None:
-                    init.TANK_TURN_RADIUS = init_config["wheel_info"]["tank_turn_radius"]
+                _process_cfg('drive_l', lambda: init_config['ports'][0])
+                _process_cfg('drive_r', lambda: init_config['ports'][1])
+                _process_cfg('attach_l', lambda: init_config['ports'][2])
+                _process_cfg('attach_r', lambda: init_config['ports'][3])
+                _process_cfg('sensor_l', lambda: init_config['ports'][4])
+                _process_cfg('sensor_r', lambda: init_config['ports'][5])
+                _process_cfg('WHEEL_DIAMETER', lambda: init_config['wheel_info']['wheel_diameter'])
+                _process_cfg('TURN_RADIUS', lambda: init_config['wheel_info']['turn_radius'])
+
+                if config_error:
+                    raise ValueError("Missing config keys: {errors}".format(errors=errors))
+
         except ValueError:
-            raise ValueError("Failed to read init.json file! Please make sure the file is contains JSON syntax and is structured properly.")
+            raise ValueError("Failed to read init.json file! Please make sure the file contains "
+                             "proper JSON syntax and is structured correctly.")
         except OSError:
-            raise OSError("Could not find init.json file! Please make sure the file has the correct name and is in the root directory of the bot.")
+            raise OSError("Could not find init.json file! Please make sure the file has the "
+                          "correct name and is in the root directory of the bot.")
 
     try:
         try:
@@ -120,16 +123,20 @@ def init(*args, **kwargs):
             mpair.unpair(mpair.PAIR_2)
         except RuntimeError:
             print("No pairs found, proceeding with creating pairs...")
-        mpair.pair(mpair.PAIR_1, init.drive_l, init.drive_r)
-        mpair.pair(mpair.PAIR_2, init.attach_l, init.attach_r)
+        mpair.pair(mpair.PAIR_1, _config['drive_l'], _config['drive_r'])
+        mpair.pair(mpair.PAIR_2, _config['attach_l'], _config['attach_r'])
     except RuntimeError:
-        raise RuntimeError("Failed to create motor pairs! Please make sure the ports used are not part of any other pairs.")
+        raise RuntimeError("Failed to create motor pairs! Please make sure the ports used are not "
+                           "part of any other pairs.")
     except ValueError:
-        raise ValueError("Failed to create motor pairs! Please make sure the ports passed as motors connect to motors and that all ports are valid.")
+        raise ValueError("Failed to create motor pairs! Please make sure the ports passed as "
+                         "motors connect to motors and that all ports are valid.")
 
     light.color(light.POWER, color.AZURE)
     light_matrix.write("#")
-    return init.drive_l, init.drive_r, init.attach_l, init.attach_r, init.sensor_l, init.sensor_r, init.WHEEL_DIAMETER, init.TANK_TURN_RADIUS
+    return (_config['drive_l'], _config['drive_r'], _config['attach_l'], _config['attach_r'],
+            _config['sensor_l'], _config['sensor_r'],
+            _config['WHEEL_DIAMETER'], _config['TURN_RADIUS'])
 
 
 async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
@@ -139,16 +146,21 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     else:
         limit = True
 
+    # For forward move: Value is changed depending on if:
+    # the bot is moving backwards (-1) or forwards (1) first, assume the bot is moving forwards.
+    f_mult = 1
+
     reset_gyro()
     yaw = motion_sensor.tilt_angles()[0]
 
-    degrees = dist*(360.0/(math.pi*init.WHEEL_DIAMETER))
+    degrees = dist*(360.0/(math.pi*_config['WHEEL_DIAMETER']))
 
     assist = kwargs.get("assist", False)
     accel = kwargs.get("acceleration", 10000)
     velocity = kwargs.get("velocity", 360)
     if degrees < 0:
         velocity = -1*velocity
+        f_mult = -1
 
     run_time = round((degrees/velocity)*1000.0)
     run_time = abs(run_time)
@@ -158,7 +170,8 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     run_time= {run_time}
     velocity= {velocity}
     accel= {accel}
-    """.format(dist=dist, stop=stop, run_until=limit, run_time=run_time, velocity=velocity, accel=accel))
+    f_mult= {mult}
+    """.format(dist=dist, stop=stop, run_until=limit, run_time=run_time, velocity=velocity, accel=accel, mult=f_mult))
 
     if assist:
         print("Forward: Using gyro to assist movement...")
@@ -177,7 +190,7 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
             yaw = motion_sensor.tilt_angles()[0]
             f_correction_factor = yaw*F_CORRECTION_CONST
             correction = velocity*f_correction_factor
-            mpair.move_tank(mpair.PAIR_1, int(velocity+correction), int(velocity-correction), acceleration=accel)
+            mpair.move_tank(mpair.PAIR_1, int(velocity+correction*f_mult), int(velocity-correction*f_mult), acceleration=accel)
             gyro_light("good")
 
     else:  # (if assist is NOT True):
@@ -206,8 +219,8 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     else:
         limit = True
 
-    dist = (2*math.pi*init.TANK_TURN_RADIUS)*(theta/360.0)
-    degrees = dist*(360.0/(math.pi*init.WHEEL_DIAMETER))
+    dist = (2*math.pi*_config['TURN_RADIUS'])*(theta/360.0)
+    degrees = dist*(360.0/(math.pi*_config['WHEEL_DIAMETER']))
 
     velocity = int(kwargs.get("velocity", 360)/2)
     if degrees < 0:
@@ -254,9 +267,9 @@ async def attachment(degrees: int, attach_side: str):
 
 async def sensor(sensor_type: str, sensor_side: str, expected: int):
     if sensor_side.lower() == "left":
-        sensor_port = init.attach_l
+        sensor_port = _config['attach_l']
     elif sensor_side.lower() == "right":
-        sensor_port = init.attach_r
+        sensor_port = _config['attach_r']
 
     if sensor_type.lower() == "color":
         value = color_sensor.color(sensor_port)
