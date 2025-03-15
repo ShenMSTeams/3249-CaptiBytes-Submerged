@@ -1,21 +1,23 @@
 """ SuperSecretLib5000.py
 
-Author: FLL Team 3249 - the Captibytes   
-Created for: LEGO SPIKE 3 Robots 
+Author: FLL Team 3249 - the Captibytes
+Created for: LEGO SPIKE 3 Robots
 
-Description:  
-This library provides functions to more efficiently program LEGO SPIKE 3 robots.  
-It includes features for motor control, sensor integration, and other robotics-related functionalities to assist in FIRST LEGO League (FLL) challenges.
+Description:
+This library provides functions to more efficiently program LEGO SPIKE 3 robots.
+It includes features for motor control, sensor integration, and other
+robotics-related functionalities to assist in FIRST LEGO League (FLL) challenges.
 
-Usage:  
+Usage:
 Import this library into your LEGO SPIKE 3 Python program to access its functions.
 
-Example:  
+Example:
     import SuperSecretLib5000 as ssl5k
     ssl5k.some_function()
 
-Note:  
-This library was created and is maintained by the FLL Captibytes team and is not officially supported by LEGO. 
+NOTE:
+This library was created and is maintained by the FLL Captibytes team and is
+not officially supported by LEGO.
 """
 
 __version__ = '2.7'
@@ -39,8 +41,7 @@ import force_sensor
 import motor_pair as mpair
 
 # For forward move: Correction factor to adjust for yaw error.
-F_CORRECTION_CONST = 0.001
-
+CORRECTION_CONST = 0.001
 
 
 def assist_light():
@@ -49,7 +50,7 @@ def assist_light():
 
 
 def reset_gyro():
-    """ Reset the robot's gyroscope to ensure proper. """ 
+    """ Reset the robot's gyroscope to ensure proper. """
     motion_sensor.set_yaw_face(motion_sensor.TOP)
     motion_sensor.reset_yaw(0)
     angles = motion_sensor.tilt_angles()
@@ -92,7 +93,7 @@ def init(**kwargs):
     - Wheel diameter (CM)
     - Turn radius (Tank) (CM)
     """
-    
+
     ver()  # Print version info at initialization.
 
     for key in _config.keys():
@@ -103,7 +104,6 @@ def init(**kwargs):
     config_error = False
     errors = []
 
-    
     def _process_cfg(key, cfg_item_f):
         """ Process configuration settings, handling missing values. """
         global config_error
@@ -116,10 +116,8 @@ def init(**kwargs):
             config_error = True
             errors.append(key)
 
-    _process_cfg('drive_l', lambda: init_config['ports'][0])
-
-    if config_error:
-        raise ValueError(f'missing config keys: {errors}')
+        if config_error:
+            raise ValueError(f'missing config keys: {errors}')
 
     # Load configuration from JSON file if requested.
     if use_json:
@@ -136,14 +134,17 @@ def init(**kwargs):
                 _process_cfg('TURN_RADIUS', lambda: init_config['wheel_info']['turn_radius'])
 
                 if config_error:
-                    raise ValueError("Missing config keys: {errors}".format(errors=errors))
+                    raise ValueError("Missing config keys: {errors}"
+                                     .format(errors=errors))
 
         except ValueError:
-            raise ValueError("Failed to read init.json file! Please make sure the file contains "
-                             "proper JSON syntax and is structured correctly.")
+            raise ValueError("Failed to read init.json file! "
+                             "Please make sure the file contains proper JSON "
+                             " syntax and is structured correctly.")
         except OSError:
-            raise OSError("Could not find init.json file! Please make sure the file has the "
-                          "correct name and is in the root directory of the bot.")
+            raise OSError("Could not find init.json file! "
+                          "Please make sure the file has the correct name and"
+                          " is in the root directory of the bot.")
 
     # Attempt to unpair and re-pair motors.
     try:
@@ -152,24 +153,27 @@ def init(**kwargs):
             mpair.unpair(mpair.PAIR_2)
         except RuntimeError:
             print("No pairs found, proceeding with creating pairs...")
-            
+
         # Create motor pairs based on configuration settings.
         mpair.pair(mpair.PAIR_1, _config['drive_l'], _config['drive_r'])
         mpair.pair(mpair.PAIR_2, _config['attach_l'], _config['attach_r'])
-        
+
     except RuntimeError:
-        raise RuntimeError("Failed to create motor pairs! Please make sure the ports used are not "
-                           "part of any other pairs.")
+        raise RuntimeError("Failed to create motor pairs! "
+                           "Please make sure the ports used are not part of"
+                           " any other pairs.")
     except ValueError:
-        raise ValueError("Failed to create motor pairs! Please make sure the ports passed as "
-                         "motors connect to motors and that all ports are valid.")
+        raise ValueError("Failed to create motor pairs! "
+                         "Please make sure the ports passed as motors connect"
+                         " to motors and that all ports are valid.")
 
     # Indicate successful initialization.
     light.color(light.POWER, color.AZURE)
     light_matrix.write("#")
 
     # Return all configuration settings.
-    return (_config['drive_l'], _config['drive_r'], _config['attach_l'], _config['attach_r'],
+    return (_config['drive_l'], _config['drive_r'],
+            _config['attach_l'], _config['attach_r'],
             _config['sensor_l'], _config['sensor_r'],
             _config['WHEEL_DIAMETER'], _config['TURN_RADIUS'])
 
@@ -180,7 +184,8 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     Parameters:
     - dist: Distance to move in centimeters
     - stop: True/False whether or not to stop at the end.
-    - run_until: Callable that is checked for a True/False value. If true, stop the motors. (If stop = True.)
+    - run_until: Callable that is checked for a True/False value. If true,
+                 stop the motors. (If stop = True.)
     - kwargs: Other options such as velocity, acceleration or assist mode.
 
     Signature:
@@ -195,7 +200,8 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
         limit = True
 
     # For forward move: Value is changed depending on if:
-    # the bot is moving backwards (-1) or forwards (1) first, assume the bot is moving forwards.
+    # the bot is moving backwards (-1) or forwards (1)
+    # first, assume the bot is moving forwards.
     correction_mult = 1
 
     reset_gyro()
@@ -220,7 +226,8 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     velocity= {velocity}
     accel= {accel}
     f_mult= {mult}
-    """.format(dist=dist, stop=stop, run_until=limit, run_time=run_time, velocity=velocity, accel=accel, mult=f_mult))
+    """.format(dist=dist, stop=stop, run_until=limit, run_time=run_time,
+               velocity=velocity, accel=accel, mult=correction_mult))
 
     if assist:
         print("Forward: Using gyro to assist movement...")
@@ -237,10 +244,11 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
                 break
 
             yaw = motion_sensor.tilt_angles()[0]
-            f_correction_factor = yaw*F_CORRECTION_CONST
-            correction = velocity*f_correction_factor
-            mpair.move_tank(mpair.PAIR_1, 
-                            int(velocity+correction*correction_mult), int(velocity-correction*correction_mult), 
+            correction_factor = yaw*CORRECTION_CONST
+            correction = velocity*correction_factor
+            mpair.move_tank(mpair.PAIR_1,
+                            int(velocity+correction*correction_mult),
+                            int(velocity-correction*correction_mult),
                             acceleration=accel)
 
     else:  # (if assist is NOT True):
@@ -266,7 +274,8 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     Parameters:
     - theta: Degrees to turn the bot. Left is negative and right is positive.
     - stop: True/False value whether or not to stop at the end.
-    - run_until: Callable that is checked for a True/False value. If true, stop the motors. (If stop = True.)
+    - run_until: Callable that is checked for a True/False value.
+                 If true, stop motors. (If stop = True.)
     - kwargs: Optional parameter for specifying velocity.
 
     Signature:
@@ -321,11 +330,11 @@ async def attachment(degrees: int, attach_side: str):
     Signature:
     `attachment(degrees: int, attach_side: str)`
 
-    NOTE: Attachment motor side is determined in the order they are listed 
-    in the config. If you listed the right attachment motor before the right one,
-    you would have to write "left" to move the right attachment motor.
+    NOTE: Attachment motor side is determined in the order they are listed
+    in the config. If you listed the right attachment motor before the right
+    one, you would have to write "left" to move the right attachment motor.
     """
-    
+
     if attach_side.lower() == "left":
         await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 360, 0)
     if attach_side.lower() == "right":
@@ -341,19 +350,19 @@ async def attachment(degrees: int, attach_side: str):
 
 async def sensor(sensor_type: str, sensor_side: str, expected: int):
     """ Reads a sensor value and compares it to the expected value.
-    
+
     Parameters:
     - sensor_type (str): Type of the sensor ('color', 'distance', 'force').
     - sensor_side (str): Side of the robot where the sensor is located ('left' or 'right').
     - expected (int): Expected sensor value to compare against.
-    
+
     Returns:
     - bool: True if the sensor value matches the expected, False otherwise.
 
     Signature:
     `sensor(sensor_type: str, sensor_side: str, expected: int)`
 
-    NOTE: Sensor side is determined in the order they are listed 
+    NOTE: Sensor side is determined in the order they are listed
     in the config. If you listed the right sensor before the right one,
     you would have to write "left" to read the right sensor.
     """
