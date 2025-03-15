@@ -181,6 +181,9 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     - stop: True/False whether or not to stop at the end.
     - run_until: Callable that is checked for a True/False value. If true, stop the motors. (If stop = True.)
     - kwargs: Other options such as velocity, acceleration or assist mode.
+
+    Signature:
+    `forward(dist: int, stop: bool = False, run_until=None, **kwargs)`
     """
 
     # If run_until is not specified, set it to False.
@@ -264,6 +267,9 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     - stop: True/False value whether or not to stop at the end.
     - run_until: Callable that is checked for a True/False value. If true, stop the motors. (If stop = True.)
     - kwargs: Optional parameter for specifying velocity.
+
+    Signature:
+    `turn(theta: int, stop: bool = False, run_until=None, **kwargs)`
     """
 
     # Same as forward move: if run_until is not specified, set it to False.
@@ -311,6 +317,9 @@ async def attachment(degrees: int, attach_side: str):
     - degrees: Degrees to turn the attachment motor(s).
     - attach_side: Attachment motor(s) to move. (left/right/both)
 
+    Signature:
+    `attachment(degrees: int, attach_side: str)`
+
     NOTE: Attachment motor side is determined in the order they are listed 
     in the config. If you listed the right attachment motor before the right one,
     you would have to write "left" to move the right attachment motor.
@@ -339,6 +348,9 @@ async def sensor(sensor_type: str, sensor_side: str, expected: int):
     
     Returns:
     - bool: True if the sensor value matches the expected, False otherwise.
+
+    Signature:
+    `sensor(sensor_type: str, sensor_side: str, expected: int)`
 
     NOTE: Sensor side is determined in the order they are listed 
     in the config. If you listed the right sensor before the right one,
