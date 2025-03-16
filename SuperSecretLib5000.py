@@ -116,8 +116,8 @@ def init(**kwargs):
             config_error = True
             errors.append(key)
 
-        if config_error:
-            raise ValueError(f'missing config keys: {errors}')
+    if config_error:
+        raise ValueError(f'missing config keys: {errors}')
 
     # Load configuration from JSON file if requested.
     if use_json:
