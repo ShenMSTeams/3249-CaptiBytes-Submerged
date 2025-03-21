@@ -237,10 +237,14 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
         while True:
             if run_until():
                 print("Forward: Stopping due to sensors...")
+                print("Stopped on: {run_until}\n"
+                      .format(run_until=run_until()))
                 break
             now = time.ticks_ms()
             if now-start > run_time:
                 print("Forward: Stopping due to time...")
+                print("Stopped on: {current_time}\n"
+                      .format(current_time=now-start))
                 break
 
             yaw = motion_sensor.tilt_angles()[0]
@@ -258,10 +262,14 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
         while True:
             if run_until():
                 print("Forward: Stopping due to sensors...")
+                print("Stopped on: {run_until}\n"
+                      .format(run_until=run_until()))
                 break
             now = time.ticks_ms()
             if now-start > run_time:
                 print("Forward: Stopping due to time...")
+                print("Stopped on: {current_time}\n"
+                      .format(current_time=now-start))
                 break
 
     if stop:
@@ -302,18 +310,24 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
 
     print("""\nTurn --
     theta= {theta}, stop= {stop}, run_until= {run_until}
-    kwargs= {kwargs}
-    """.format(theta=theta, stop=stop, run_until=limit, kwargs=kwargs.items()))
+    run_time= {run_time}
+    velocity= {velocity}
+    """.format(theta=theta, stop=stop, run_until=limit, run_time=run_time,
+               velocity=velocity))
 
     mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
     start = time.ticks_ms()
     while True:
         if run_until():
             print("Turn: Stopping due to sensors...")
+            print("Stopped on: {run_until}\n"
+                  .format(run_until=run_until()))
             break
         now = time.ticks_ms()
         if now-start > run_time:
             print("Turn: Stopping due to time...")
+            print("Stopped on: {current_time}\n"
+                  .format(current_time=now-start))
             break
 
     if stop:
@@ -331,8 +345,8 @@ async def attachment(degrees: int, attach_side: str):
     `attachment(degrees: int, attach_side: str)`
 
     NOTE: Attachment motor side is determined in the order they are listed
-    in the config. If you listed the right attachment motor before the right
-    one, you would have to write "left" to move the right attachment motor.
+    in the config. If you listed the right attachment motor before the left one,
+    you would have to write "left" to use the right attachment motor.
     """
 
     if attach_side.lower() == "left":
@@ -348,7 +362,7 @@ async def attachment(degrees: int, attach_side: str):
     """.format(degrees=degrees, attach_side=attach_side))
 
 
-async def sensor(sensor_type: str, sensor_side: str, expected: int):
+def sensor(sensor_type: str, sensor_side: str):
     """ Reads a sensor value and compares it to the expected value.
 
     Parameters:
@@ -363,7 +377,7 @@ async def sensor(sensor_type: str, sensor_side: str, expected: int):
     `sensor(sensor_type: str, sensor_side: str, expected: int)`
 
     NOTE: Sensor side is determined in the order they are listed
-    in the config. If you listed the right sensor before the right one,
+    in the config. If you listed the right sensor before the left one,
     you would have to write "left" to read the right sensor.
     """
 
@@ -376,12 +390,12 @@ async def sensor(sensor_type: str, sensor_side: str, expected: int):
     # Read and compare sensor value to the expected.
     if sensor_type.lower() == "color":
         value = color_sensor.color(sensor_port)
-        return value == expected
     elif sensor_type.lower() == "distance":
         value = distance_sensor.distance(sensor_port)
-        return value == expected
     elif sensor_type.lower() == "force":
         value = force_sensor.force(sensor_port)
-        return value == expected
+
     else:
         raise ValueError(f"Unsupported sensor type: {sensor_type}")
+
+    return value
