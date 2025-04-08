@@ -1,9 +1,22 @@
+''' Code slot 4, run from Red Base, uses "Useless Transporter attachment.
+
+This program completes the following missions:
+- "M15 Research Vessel",
+- "M09 Unexpected Encounter - Unknown Creature"
+
+In addition, it:
+1. Sets up "M08 Artificial Habitat" cages in a square formation.
+
+Purpose of case 1: Later in the run, the bot will attempt to flip these cages
+    in a way that all crabs are facing up, totaling 40pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 
 ssl5k.init(use_json=True)
 
-async def newbeginnings():
+async def main():
     await ssl5k.attachment(30, "left", velocity=-1000)
     await ssl5k.forward(80, True, velocity=1600)
     await ssl5k.turn(200, True, velocity=1000)
@@ -20,4 +33,4 @@ async def newbeginnings():
     await ssl5k.turn(40, True)
     await ssl5k.forward(50, True, velocity=1440)
 
-runloop.run(newbeginnings())
+runloop.run(main())
