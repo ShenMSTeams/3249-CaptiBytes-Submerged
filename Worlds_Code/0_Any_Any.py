@@ -1,4 +1,4 @@
-''' Code slot 0, Any Base, can use any attachment.
+''' Code slot 0, run on Any Base, can use any attachment.
 
 This program does not specifically complete any missions by itself.
 
