@@ -1,7 +1,9 @@
-''' This program completes the following missions:
-- 'M06 Angler Fish',
-- 'M09 Unexpected Encounter - Cold Seep',
-- 'M13 Change Shipping Lanes'
+''' Code slot 8, Blue Base, uses "Squiddler" attachment.
+
+This program completes the following missions:
+- "M06 Angler Fish",
+- "M09 Unexpected Encounter - Cold Seep",
+- "M13 Change Shipping Lanes"
 '''
 
 import SuperSecretLib5000 as ssl5k
@@ -9,7 +11,7 @@ import runloop
 
 ssl5k.init(use_json=True)
 
-async def run():
+async def main():
     await ssl5k.forward(-5)
     await ssl5k.attachment(50,"Right")
     await ssl5k.forward(42, False, assist=True)
