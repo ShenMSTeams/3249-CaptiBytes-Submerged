@@ -1,6 +1,11 @@
-''' Code slot 1, Red Base, uses 'Useless Claw' attachment.
-This program does not complete any missions on its own.
+''' Code slot 1, Red Base, uses "Useless Claw" attachment.
+This program does not specifically complete any missions by itself.
+
 Instead, it:
+1. Latches on to the "M15 Research Vessel" boat and takes it into Red Base.
+
+Purpose of case 1: Place "Water Sample" inside for more points when docking the
+    boat.
 '''
 
 import SuperSecretLib5000 as ssl5k
