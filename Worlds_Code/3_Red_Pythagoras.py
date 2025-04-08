@@ -1,3 +1,16 @@
+''' Code slot 3, run on Red Base, uses "Pythagoras" attachment.
+
+This program completes the following missions:
+- "M06 Raise the Mast",
+- "M07 Kraken's Treasure"
+
+In addition, it:
+1. Attemps to place the scuba diver from "M04 Scuba Diver" on the 
+    "M03 Coral Reef" coral reef support.
+
+Purpose of case 1: Earns an extra 20pts if successful.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 
