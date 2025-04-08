@@ -1,3 +1,9 @@
+''' Code slot 6, run from Blue Base, uses "Breakfast" attachment.
+
+This program completes the following mission:
+- "M12 Feed the Whale"
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 
@@ -26,7 +32,10 @@ async def go_to_sonar():
     await ssl5k.forward(-100, True)
 
 
-runloop.run(dinner())
-runloop.run(feed_the_beast())
-runloop.run(dont_unfeed_the_beast())
-runloop.run(go_to_sonar())
+async def main():
+    runloop.run(dinner())
+    runloop.run(feed_the_beast())
+    runloop.run(dont_unfeed_the_beast())
+    runloop.run(go_to_sonar())
+
+runloop.run(main())
