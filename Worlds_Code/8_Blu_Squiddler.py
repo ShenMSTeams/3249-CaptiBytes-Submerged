@@ -1,4 +1,4 @@
-''' Code slot 8, Blue Base, uses "Squiddler" attachment.
+''' Code slot 8, run on Blue Base, uses "Squiddler" attachment.
 
 This program completes the following missions:
 - "M06 Angler Fish",
