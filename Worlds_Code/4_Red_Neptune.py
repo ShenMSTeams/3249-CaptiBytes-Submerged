@@ -1,3 +1,8 @@
+''' Code slot 4, run from Red Base, uses "Neptune" attachment.
+
+(No Info)
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 
