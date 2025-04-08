@@ -10,6 +10,9 @@ import runloop
 ssl5k.init(use_json=True)
 
 async def dinner():
+    
+    # There's not a dedicated implementation for checking both sensors in our library,
+    # so we made a function that simply checks both for the same value.
     def black():
         if ssl5k.sensor("color", "left") == 0 and ssl5k.sensor("color", "left") == 0:
             return True
