@@ -1,7 +1,19 @@
-''' This program does not specifically complete any missions by itself.
-Instead it:
-- Is used at the start of runs in Red Base to collect coral, one krill and a sample,
-- Serves as a backup program in case the bot fails to collect the "Unexpected Encounter" squid.
+''' Code slot 0, Any Base, can use any attachment.
+
+This program does not specifically complete any missions by itself.
+
+Instead, it:
+1. Is used at the start of runs in Red Base to collect coral, one krill and 
+    "Water Sample",
+2. Serves as a backup program to retry collecting the squid from 
+    "M09 Unexpected Encounter" in case the bot does not collect it the first 
+    time.
+
+Purpose of case 1: Krill is used in "M12 Feed the Whale", "Water Sample" is used
+    in "M15 Research Vessel".
+
+Purpose of case 2: The squid is used later in the run for completing 
+    "M09 Unexpected Encounter - Cold Seep".
 '''
 
 import SuperSecretLib5000 as ssl5k
