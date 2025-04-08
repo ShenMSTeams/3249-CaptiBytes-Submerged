@@ -1,4 +1,5 @@
 ''' Code slot 1, Red Base, uses "Useless Claw" attachment.
+
 This program does not specifically complete any missions by itself.
 
 Instead, it:
