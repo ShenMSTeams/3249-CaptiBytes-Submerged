@@ -3,7 +3,7 @@ import runloop
 
 ssl5k.init(use_json=True)
 
-async def run():
+async def main():
     await ssl5k.forward(-5)
     await ssl5k.attachment(60,"right")
     await ssl5k.forward(46, False, assist=True)
@@ -21,4 +21,4 @@ async def run():
     await ssl5k.forward(20, True)
     await ssl5k.forward(-20, True)
   
-runloop.run(run())
+runloop.run(main())
