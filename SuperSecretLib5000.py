@@ -20,7 +20,7 @@ This library was created and is maintained by the FLL Captibytes team and is
 not officially supported by LEGO.
 """
 
-__version__ = '2.7'
+__version__ = '3.0'
 __author__ = 'Shen FLL Team #3249 - the Captibytes'
 
 import sys
@@ -192,20 +192,22 @@ async def forward(dist: int, stop: bool = False, run_until=None, **kwargs):
     `forward(dist: int, stop: bool = False, run_until=None, **kwargs)`
     """
 
+    reset_gyro()
+
+    # Value is changed depending on if:
+    # the bot is moving backwards (-1) or forwards (1)
+    # first, assume the bot is moving forwards.
+    correction_mult = 1
+
+    # We set yaw here because it would be unbound otherwise.
+    yaw = motion_sensor.tilt_angles()[0]
+
     # If run_until is not specified, set it to False.
     if run_until is None:
         run_until = lambda: False
         limit = False
     else:
         limit = True
-
-    # For forward move: Value is changed depending on if:
-    # the bot is moving backwards (-1) or forwards (1)
-    # first, assume the bot is moving forwards.
-    correction_mult = 1
-
-    reset_gyro()
-    yaw = motion_sensor.tilt_angles()[0]
 
     degrees = dist*(360.0/(math.pi*_config['WHEEL_DIAMETER']))
 
@@ -290,6 +292,10 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
     `turn(theta: int, stop: bool = False, run_until=None, **kwargs)`
     """
 
+    reset_gyro()
+
+    total_turn = 0.0
+
     # Same as forward move: if run_until is not specified, set it to False.
     if run_until is None:
         run_until = lambda: False
@@ -317,24 +323,61 @@ async def turn(theta: int, stop: bool = False, run_until=None, **kwargs):
 
     mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
     start = time.ticks_ms()
+    angle_prev = (motion_sensor.tilt_angles()[0])/10.0
     while True:
         if run_until():
-            print("Turn: Stopping due to sensors...")
-            print("Stopped on: {run_until}\n"
-                  .format(run_until=run_until()))
             break
         now = time.ticks_ms()
         if now-start > run_time:
-            print("Turn: Stopping due to time...")
-            print("Stopped on: {current_time}\n"
-                  .format(current_time=now-start))
             break
+
+        angle_now = (motion_sensor.tilt_angles()[0])/10.0
+        # Sign change + -> - (turning right)
+        if angle_now < 0.0 and angle_prev > 0.0 and theta > 0.0:
+            _delta_pos = 180.0 - angle_prev
+            _delta_neg = angle_now + 180.0
+            delta_turn = _delta_pos + _delta_neg
+        elif angle_now > 0.0 and angle_prev < 0.0 and theta < 0.0:
+            _delta_neg = -180.0 - angle_prev
+            _delta_pos = angle_now + 180.0
+            delta_turn = _delta_pos + _delta_neg
+        else:
+            delta_turn = angle_now - angle_prev
+
+        total_turn += delta_turn
+
+        if abs(total_turn) >= abs(theta):
+            break
+
+        angle_prev = angle_now
+
+    print("""\nGyro --
+    expected= {theta} degrees
+    gyro= {total_turn} degrees
+    error= {error} degrees
+    """.format(theta = theta, total_turn = total_turn,
+               error = total_turn-theta))
+
+    # mpair.move_tank(mpair.PAIR_1, velocity, -1*velocity)
+    # start = time.ticks_ms()
+    # while True:
+    #    if run_until():
+    #        print("Turn: Stopping due to sensors...")
+    #        print("Stopped on: {run_until}\n"
+    #              .format(run_until=run_until()))
+    #        break
+    #    now = time.ticks_ms()
+    #    if now-start > run_time:
+    #        print("Turn: Stopping due to time...")
+    #        print("Stopped on: {current_time}\n"
+    #              .format(current_time=now-start))
+    #        break
 
     if stop:
         mpair.stop(mpair.PAIR_1)
 
 
-async def attachment(degrees: int, attach_side: str):
+async def attachment(degrees: int, attach_side: str, **kwargs):
     """ Turn attachment motor(s) a number of degrees.
 
     Parameters:
@@ -348,13 +391,20 @@ async def attachment(degrees: int, attach_side: str):
     in the config. If you listed the right attachment motor before the left one,
     you would have to write "left" to use the right attachment motor.
     """
+    # Read velocity parameter.
+    velocity = int(kwargs.get("velocity", 360)/2)
+    if degrees < 0:
+        velocity = -1*velocity
 
     if attach_side.lower() == "left":
-        await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 360, 0)
+        await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees,
+                                          velocity, 0)
     if attach_side.lower() == "right":
-        await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 0, 360)
+        await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees,
+                                          0, velocity)
     if attach_side.lower() == "both":
-        await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees, 360, 360)
+        await mpair.move_tank_for_degrees(mpair.PAIR_2, degrees,
+                                          velocity, velocity)
 
     print("""\nAttachment --
     degrees= {degrees}
