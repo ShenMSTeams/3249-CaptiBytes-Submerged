@@ -19,4 +19,4 @@ async def main():
     await ssl5k.turn(-20)
     await ssl5k.forward(-74, True, assist=True)
 
-runloop.run(ripuselessstick())
+runloop.run(main())
