@@ -1,3 +1,9 @@
+''' This code completes the following missions:
+- "M08 - Artificial Habitat"
+
+This code can score up to 40 pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 
