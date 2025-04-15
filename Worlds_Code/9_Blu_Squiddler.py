@@ -3,7 +3,7 @@
 - "M09 - Unexpected Encounter",
 - "M05 - Angler Fish" 
 
-This Run gets a total of 80 Pts.
+This code is can score up to 80 pts.
 '''
 import SuperSecretLib5000 as ssl5k
 import runloop
