@@ -1,3 +1,11 @@
+''' This code completes the following missions:
+- "M06 - Raise the Mast",
+- "M02 - Grab Shark",
+- "M04 - Drop Off Scuba Diver"
+
+This code can score up to 70 pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 

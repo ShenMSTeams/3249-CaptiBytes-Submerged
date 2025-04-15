@@ -1,3 +1,11 @@
+''' This code completes the following missions:
+- "M15 - Latch Research Vessel",
+- "M15 - Research Vessel Cargo",
+- "M08 - Artificial Habitat"
+
+This code can score a total of 30 pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 

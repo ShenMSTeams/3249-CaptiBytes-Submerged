@@ -1,3 +1,10 @@
+''' This code completes the following missions:
+- "M14 - Sample Collection Trident",
+- "M04 - Drop Off Shark"
+
+This code can score up to 40 pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 

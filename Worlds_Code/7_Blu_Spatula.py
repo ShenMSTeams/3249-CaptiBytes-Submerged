@@ -1,3 +1,10 @@
+''' This code completes the following missions:
+- "M11 - Sonar Discovery",
+- "M13 - Change Shipping Lanes"
+
+This code can score up to 50 pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 

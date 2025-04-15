@@ -1,3 +1,9 @@
+''' This code does not complete any missions. Instead, it:
+- Pull "M15 Research Vessel" boat into Red Base.
+
+This code does not score any pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 

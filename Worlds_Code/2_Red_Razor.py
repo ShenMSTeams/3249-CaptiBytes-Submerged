@@ -1,3 +1,10 @@
+''' This code completes the following missions:
+- "M01 - Flip Coral Nursery Buds",
+- "M04 - Grab Scuba Diver"
+
+This code can score up to 40 pts.
+'''
+
 import SuperSecretLib5000 as ssl5k
 import runloop
 
